@@ -1,4 +1,68 @@
 import streamlit as st
+import openai
+import yaml
+from azure.identity import DefaultAzureCredential
+from azure.ai.openai import OpenAIClient
+
+
+def create_azure_openai_client(config_path):
+    """
+    Create and return an Azure OpenAI client using the settings from a configuration file.
+
+    Args:
+        config_path (str): Path to the YAML configuration file with Azure OpenAI settings.
+
+    Returns:
+        OpenAIClient: An authenticated Azure OpenAI client.
+    """
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+
+    credential = DefaultAzureCredential()
+    client = OpenAIClient(endpoint=config['endpoint'], credential=credential)
+    return client
+
+
+def get_completion(client, prompt, model):
+    """
+    Get the completion from the OpenAI model using the given prompt.
+
+    Args:
+        client (OpenAIClient): The Azure OpenAI client.
+        prompt (str): The prompt to send to the OpenAI model.
+        model (str): The name of the OpenAI model to use for completion.
+
+    Returns:
+        dict: The completion response from the OpenAI model.
+        dict: Token usage details.
+    """
+    response = client.completions.create(
+        engine=model,
+        prompt=prompt,
+        max_tokens=1000
+    )
+    return response, response.usage
+
+
+def translate_java_to_python(client, java_code, prompt, model="text-davinci-003"):
+    """
+    Translate Java code to Python using the OpenAI model.
+
+    Args:
+        client (OpenAIClient): The Azure OpenAI client.
+        java_code (str): The Java code to be translated.
+        prompt (str): The prompt for the translation.
+        model (str, optional): The name of the OpenAI model to use. Defaults to "text-davinci-003".
+
+    Returns:
+        str: The translated Python code.
+    """
+    full_prompt = f"{prompt}\n\nJava Code:\n{java_code}\n\nPython Code:"
+    response, _ = get_completion(client, full_prompt, model)
+    python_code = response.choices[0].text.strip()
+    return python_code
+
+
 
 # Set the app to wide mode
 st.set_page_config(layout="wide")
