@@ -1,54 +1,38 @@
-import json
 import pandas as pd
-from typing import Any, Union
 
-def flatten_json(y: Any) -> dict:
+def filter_clients_by_ou_code(input_file: str, ou_codes: list, output_file: str) -> None:
     """
-    Recursively flattens a nested JSON dictionary.
+    Filters a masterlist of clients based on the provided OU codes, which may be substrings of 
+    the 'OU_code' field, and saves the resulting dataframe to an output file.
 
-    Args:
-        y (Any): A dictionary representing the JSON structure.
+    :param input_file: Path to the input CSV file containing the masterlist of clients. The file 
+                        should be a CSV with a column 'OU_code' that contains the codes as part 
+                        of a string.
+    :type input_file: str
+    :param ou_codes: List of OU codes (substrings) to filter the 'OU_code' column by.
+    :type ou_codes: list of str
+    :param output_file: Path to the output CSV file where the filtered list will be saved.
+    :type output_file: str
 
-    Returns:
-        dict: A flattened dictionary where nested keys are concatenated with dots.
+    :return: None
+    :raises FileNotFoundError: If the input file does not exist.
+    :raises ValueError: If the 'OU_code' column is missing in the input file.
     """
-    out = {}
-
-    def flatten(x: Any, name: str = ''):
-        if isinstance(x, dict):
-            for key in x:
-                flatten(x[key], name + key + '.')
-        elif isinstance(x, list):
-            for i, item in enumerate(x):
-                flatten(item, name + str(i) + '.')
-        else:
-            out[name[:-1]] = x
-
-    flatten(y)
-    return out
-
-def load_hierarchical_json(content: Union[str, bytes]) -> pd.DataFrame:
-    """
-    Loads a hierarchical JSON file of unknown structure into a DataFrame by flattening it.
-
-    Args:
-        content (Union[str, bytes]): The content of the JSON file as a string or bytes.
-
-    Returns:
-        pd.DataFrame: A DataFrame representing the flattened JSON content.
-    """
-    # Load JSON content
-    if isinstance(content, bytes):
-        json_data = json.loads(content.decode('utf-8'))
-    else:
-        json_data = json.loads(content)
+    try:
+        # Load the input dataframe
+        df = pd.read_csv(input_file)
+        
+        # Check if 'OU_code' column exists
+        if 'OU_code' not in df.columns:
+            raise ValueError("The input file must contain an 'OU_code' column.")
+        
+        # Filter the dataframe by checking if any of the OU codes in the list are substrings of the 'OU_code'
+        filtered_df = df[df['OU_code'].apply(lambda x: any(ou_code in x for ou_code in ou_codes))]
+        
+        # Save the filtered dataframe to the output file
+        filtered_df.to_csv(output_file, index=False)
     
-    # Check if JSON data is a list or a dictionary
-    if isinstance(json_data, dict):
-        json_data = [json_data]  # Convert to list for consistent processing
-
-    # Flatten each item in the list (each root-level object) and create a DataFrame
-    flattened_data = [flatten_json(item) for item in json_data]
-    df = pd.DataFrame(flattened_data)
-
-    return df
+    except FileNotFoundError:
+        print(f"Error: The file {input_file} was not found.")
+    except ValueError as e:
+        print(e)
