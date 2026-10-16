@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctrlauto-commons"
+version = "0.1.0"
+description = "Shared observability (MLflow tracing, logging, retries) and DWH connectivity for control automation projects"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Jenny Raikakou" }]
+
+# Core: everything the observability + config code needs
+dependencies = [
+    "mlflow>=3.12,<4",
+    "openai>=1.50,<3",
+    "pandas>=2.2,<3",
+    "numpy>=1.26,<3",
+    "tenacity>=8.2,<10",
+    "structlog>=26.1,<27",
+    "pydantic-settings>=2.0,<3",
+    "azure-identity>=1.15,<2",
+    "risklabutils>=0.1.30,<0.2",
+]
+
+[project.optional-dependencies]
+# DWH connectivity (IBM Db2). Optional because ibm_db needs native drivers.
+dwh = [
+    "ibm_db>=3.2,<4",
+]
+# Development / testing
+dev = [
+    "pytest>=9.1,<10",
+]
+all = ["ctrlauto-commons[dwh]"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
